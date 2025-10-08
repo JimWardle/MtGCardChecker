@@ -17,9 +17,8 @@ A web-based tool for cataloging and pricing Magic: The Gathering cards using the
 
 ## 🚀 Live Demo
 
-[View Live Tool](https://yourusername.github.io/mtg-card-pricer/) *(Update with your actual GitHub Pages URL)*
-
-## 📋 How to Use
+[View Live Tool](https://jimwardle.github.io/MtGCardChecker/) 
+📋 How to Use
 
 ### Basic Usage
 
