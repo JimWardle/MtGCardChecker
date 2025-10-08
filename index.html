@@ -291,6 +291,8 @@
                 <h3>How to use:</h3>
                 <ul>
                     <li>Enter card names, one per line</li>
+                    <li><strong>Optional:</strong> Add set code in brackets: <code>Lightning Bolt [LEA]</code></li>
+                    <li>Without set code, it will fetch the most recent printing</li>
                     <li>Click "Fetch Prices" to query Scryfall API</li>
                     <li>View results, sort by any column</li>
                     <li>Export to CSV for spreadsheet use</li>
@@ -299,7 +301,7 @@
             
             <div class="input-section">
                 <label for="cardInput">Card Names (one per line):</label>
-                <textarea id="cardInput" placeholder="Built to Smash&#10;Chandra's Pyrohelix&#10;Lightning Bolt&#10;Black Lotus"></textarea>
+                <textarea id="cardInput" placeholder="Built to Smash&#10;Lightning Bolt [LEA]&#10;Sol Ring [CMR]&#10;Path to Exile"></textarea></textarea>
                 
                 <div class="button-group">
                     <button class="btn-primary" onclick="fetchPrices()">Fetch Prices</button>
@@ -364,15 +366,13 @@
 
         function loadSampleData() {
             const sampleCards = `Built to Smash
-Chandra's Pyrohelix
-Harnessed Lightning
-Hijack
-Deadlock Trap
-Furious Reprisal
-Ruinous Gremlin
-Speedway Fanatic
-Longtusk Cub
-Sage of Shaila's Claim`;
+Lightning Bolt [LEA]
+Lightning Bolt
+Path to Exile [OTC]
+Sol Ring [CMR]
+Rhystic Study
+Black Lotus [LEA]
+Cultivate`;
             document.getElementById('cardInput').value = sampleCards;
         }
 
@@ -390,23 +390,41 @@ Sage of Shaila's Claim`;
                 return;
             }
 
-            const cardNames = input.split('\n').map(name => name.trim()).filter(name => name);
+            // Parse card names and optional set codes
+            const cardEntries = input.split('\n').map(line => {
+                line = line.trim();
+                if (!line) return null;
+                
+                // Check for set code in brackets [XXX]
+                const match = line.match(/^(.+?)\s*\[([A-Z0-9]+)\]$/i);
+                if (match) {
+                    return {
+                        name: match[1].trim(),
+                        setCode: match[2].toUpperCase()
+                    };
+                }
+                return {
+                    name: line,
+                    setCode: null
+                };
+            }).filter(entry => entry !== null);
             
             document.getElementById('errorBox').style.display = 'none';
             document.getElementById('progressSection').style.display = 'block';
             document.getElementById('resultsSection').style.display = 'none';
             
             cardData = [];
-            const total = cardNames.length;
+            const total = cardEntries.length;
             let completed = 0;
 
-            for (const cardName of cardNames) {
+            for (const entry of cardEntries) {
                 try {
-                    const data = await queryScryfall(cardName);
+                    const data = await queryScryfall(entry.name, entry.setCode);
                     cardData.push(data);
                 } catch (error) {
                     cardData.push({
-                        name: cardName,
+                        name: entry.name,
+                        setCode: entry.setCode,
                         error: error.message
                     });
                 }
@@ -422,15 +440,22 @@ Sage of Shaila's Claim`;
             displayResults();
         }
 
-        async function queryScryfall(cardName) {
-            const encodedName = encodeURIComponent(cardName);
-            const url = `https://api.scryfall.com/cards/named?exact=${encodedName}`;
+        async function queryScryfall(cardName, setCode = null) {
+            let url;
+            
+            if (setCode) {
+                // Query specific set printing
+                url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}&set=${setCode}`;
+            } else {
+                // Query most recent printing
+                url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
+            }
             
             const response = await fetch(url);
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    throw new Error('Card not found');
+                    throw new Error(setCode ? `Card not found in set ${setCode}` : 'Card not found');
                 }
                 throw new Error(`API error: ${response.status}`);
             }
@@ -447,7 +472,8 @@ Sage of Shaila's Claim`;
                 price: parseFloat(data.prices?.usd) || 0,
                 priceFoil: parseFloat(data.prices?.usd_foil) || 0,
                 imageUrl: data.image_uris?.small || '',
-                scryfallUrl: data.scryfall_uri
+                scryfallUrl: data.scryfall_uri,
+                requestedSet: setCode // Track if user requested specific set
             };
         }
 
@@ -470,20 +496,24 @@ Sage of Shaila's Claim`;
                 
                 if (card.error) {
                     row.innerHTML = `
-                        <td>${card.name}</td>
+                        <td>${card.name}${card.setCode ? ` <span style="color: #999;">[${card.setCode}]</span>` : ''}</td>
                         <td colspan="5" style="color: #dc3545;">❌ ${card.error}</td>
                     `;
                 } else {
                     totalValue += card.price;
                     validCards++;
                     
+                    const setDisplay = card.requestedSet 
+                        ? `${card.set} (${card.setCode}) ✓` 
+                        : `${card.set} (${card.setCode})`;
+                    
                     row.innerHTML = `
                         <td><strong>${card.name}</strong></td>
-                        <td>${card.set} (${card.setCode})</td>
+                        <td>${setDisplay}</td>
                         <td><span class="rarity rarity-${card.rarity}">${card.rarity}</span></td>
                         <td>${card.type}</td>
-                        <td class="price">$${card.price.toFixed(2)}</td>
-                        <td class="price">$${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}</td>
+                        <td class="price">${card.price.toFixed(2)}</td>
+                        <td class="price">${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}</td>
                     `;
                 }
             });
