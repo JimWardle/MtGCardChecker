@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Card Pricing Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .progress-section {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            opacity: 0.9;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover {
+            background: #e9ecef;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .rarity {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .rarity-common { background: #333; color: white; }
+        .rarity-uncommon { background: #6c757d; color: white; }
+        .rarity-rare { background: #ffc107; color: #333; }
+        .rarity-mythic { background: #dc3545; color: white; }
+        
+        .price {
+            font-weight: 600;
+            color: #10b981;
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            padding: 15px;
+            border-radius: 8px;
+            color: #c33;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .info-box h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .info-box ul {
+            margin-left: 20px;
+        }
+        
+        .info-box li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🃏 MTG Card Pricing Tool</h1>
+            <p>Powered by Scryfall API | Parse and price your Magic: The Gathering collection</p>
+        </div>
+        
+        <div class="content">
+            <div class="info-box">
+                <h3>How to use:</h3>
+                <ul>
+                    <li>Enter card names, one per line</li>
+                    <li>Click "Fetch Prices" to query Scryfall API</li>
+                    <li>View results, sort by any column</li>
+                    <li>Export to CSV for spreadsheet use</li>
+                </ul>
+            </div>
+            
+            <div class="input-section">
+                <label for="cardInput">Card Names (one per line):</label>
+                <textarea id="cardInput" placeholder="Built to Smash&#10;Chandra's Pyrohelix&#10;Lightning Bolt&#10;Black Lotus"></textarea>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="fetchPrices()">Fetch Prices</button>
+                    <button class="btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
+                    <button class="btn-secondary" onclick="clearAll()">Clear All</button>
+                </div>
+            </div>
+            
+            <div class="error" id="errorBox"></div>
+            
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+                <p class="progress-text" id="progressText">Starting...</p>
+            </div>
+            
+            <div class="results-section" id="resultsSection">
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3 id="totalCards">0</h3>
+                        <p>Total Cards</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="totalValue">$0.00</h3>
+                        <p>Total Value</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="avgPrice">$0.00</h3>
+                        <p>Average Price</p>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-success" onclick="exportToCSV()">Export to CSV</button>
+                    <button class="btn-secondary" onclick="copyToClipboard()">Copy to Clipboard</button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Card Name ↕</th>
+                                <th onclick="sortTable(1)">Set ↕</th>
+                                <th onclick="sortTable(2)">Rarity ↕</th>
+                                <th onclick="sortTable(3)">Type ↕</th>
+                                <th onclick="sortTable(4)">Price (USD) ↕</th>
+                                <th onclick="sortTable(5)">Foil Price ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cardData = [];
+        let sortDirection = {};
+
+        function loadSampleData() {
+            const sampleCards = `Built to Smash
+Chandra's Pyrohelix
+Harnessed Lightning
+Hijack
+Deadlock Trap
+Furious Reprisal
+Ruinous Gremlin
+Speedway Fanatic
+Longtusk Cub
+Sage of Shaila's Claim`;
+            document.getElementById('cardInput').value = sampleCards;
+        }
+
+        function clearAll() {
+            document.getElementById('cardInput').value = '';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('errorBox').style.display = 'none';
+            cardData = [];
+        }
+
+        async function fetchPrices() {
+            const input = document.getElementById('cardInput').value.trim();
+            if (!input) {
+                showError('Please enter at least one card name!');
+                return;
+            }
+
+            const cardNames = input.split('\n').map(name => name.trim()).filter(name => name);
+            
+            document.getElementById('errorBox').style.display = 'none';
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            cardData = [];
+            const total = cardNames.length;
+            let completed = 0;
+
+            for (const cardName of cardNames) {
+                try {
+                    const data = await queryScryfall(cardName);
+                    cardData.push(data);
+                } catch (error) {
+                    cardData.push({
+                        name: cardName,
+                        error: error.message
+                    });
+                }
+                
+                completed++;
+                updateProgress(completed, total);
+                
+                // Rate limiting: 100ms delay between requests
+                await sleep(100);
+            }
+
+            document.getElementById('progressSection').style.display = 'none';
+            displayResults();
+        }
+
+        async function queryScryfall(cardName) {
+            const encodedName = encodeURIComponent(cardName);
+            const url = `https://api.scryfall.com/cards/named?exact=${encodedName}`;
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Card not found');
+                }
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            return {
+                name: data.name,
+                set: data.set_name,
+                setCode: data.set.toUpperCase(),
+                rarity: data.rarity,
+                type: data.type_line,
+                colors: data.colors || [],
+                price: parseFloat(data.prices?.usd) || 0,
+                priceFoil: parseFloat(data.prices?.usd_foil) || 0,
+                imageUrl: data.image_uris?.small || '',
+                scryfallUrl: data.scryfall_uri
+            };
+        }
+
+        function updateProgress(completed, total) {
+            const percentage = Math.round((completed / total) * 100);
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressFill').textContent = percentage + '%';
+            document.getElementById('progressText').textContent = `Processing ${completed} of ${total} cards...`;
+        }
+
+        function displayResults() {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            let totalValue = 0;
+            let validCards = 0;
+
+            cardData.forEach(card => {
+                const row = tbody.insertRow();
+                
+                if (card.error) {
+                    row.innerHTML = `
+                        <td>${card.name}</td>
+                        <td colspan="5" style="color: #dc3545;">❌ ${card.error}</td>
+                    `;
+                } else {
+                    totalValue += card.price;
+                    validCards++;
+                    
+                    row.innerHTML = `
+                        <td><strong>${card.name}</strong></td>
+                        <td>${card.set} (${card.setCode})</td>
+                        <td><span class="rarity rarity-${card.rarity}">${card.rarity}</span></td>
+                        <td>${card.type}</td>
+                        <td class="price">$${card.price.toFixed(2)}</td>
+                        <td class="price">$${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}</td>
+                    `;
+                }
+            });
+
+            document.getElementById('totalCards').textContent = validCards;
+            document.getElementById('totalValue').textContent = '$' + totalValue.toFixed(2);
+            document.getElementById('avgPrice').textContent = validCards > 0 ? '$' + (totalValue / validCards).toFixed(2) : '$0.00';
+            
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById('resultsTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            const direction = sortDirection[columnIndex] || 'asc';
+            const newDirection = direction === 'asc' ? 'desc' : 'asc';
+            sortDirection = { [columnIndex]: newDirection };
+            
+            rows.sort((a, b) => {
+                let aVal = a.cells[columnIndex]?.textContent || '';
+                let bVal = b.cells[columnIndex]?.textContent || '';
+                
+                // Handle price columns
+                if (columnIndex === 4 || columnIndex === 5) {
+                    aVal = parseFloat(aVal.replace(/[$,]/g, '')) || 0;
+                    bVal = parseFloat(bVal.replace(/[$,]/g, '')) || 0;
+                    return newDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                // Handle text columns
+                if (newDirection === 'asc') {
+                    return aVal.localeCompare(bVal);
+                } else {
+                    return bVal.localeCompare(aVal);
+                }
+            });
+            
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function exportToCSV() {
+            let csv = 'Card Name,Set,Set Code,Rarity,Type,Price (USD),Foil Price (USD)\n';
+            
+            cardData.forEach(card => {
+                if (!card.error) {
+                    csv += `"${card.name}","${card.set}","${card.setCode}","${card.rarity}","${card.type}",${card.price},${card.priceFoil}\n`;
+                }
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mtg-collection-' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function copyToClipboard() {
+            let text = 'Card Name\tSet\tRarity\tType\tPrice (USD)\tFoil Price (USD)\n';
+            
+            cardData.forEach(card => {
+                if (!card.error) {
+                    text += `${card.name}\t${card.set}\t${card.rarity}\t${card.type}\t$${card.price.toFixed(2)}\t$${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}\n`;
+                }
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Data copied to clipboard! You can paste it into Excel or Google Sheets.');
+            });
+        }
+
+        function showError(message) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
