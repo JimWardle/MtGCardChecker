@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTG Card Pricing Tool</title>
+    <title>MTG Card Cataloging Tool</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -196,31 +196,28 @@
             overflow-x: auto;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
+            margin-top: 20px;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 13px;
         }
         
         th {
             background: #f8f9fa;
-            padding: 15px;
+            padding: 12px 8px;
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid #e0e0e0;
             position: sticky;
             top: 0;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        th:hover {
-            background: #e9ecef;
+            white-space: nowrap;
         }
         
         td {
-            padding: 12px 15px;
+            padding: 10px 8px;
             border-bottom: 1px solid #f0f0f0;
         }
         
@@ -228,11 +225,26 @@
             background: #f8f9fa;
         }
         
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
         .rarity {
             display: inline-block;
             padding: 4px 8px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
         }
@@ -277,31 +289,38 @@
         .info-box li {
             margin: 5px 0;
         }
+
+        .editable-cell {
+            min-width: 80px;
+        }
+
+        .color-display {
+            font-family: monospace;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🃏 MTG Card Pricing Tool</h1>
-            <p>Powered by Scryfall API | Parse and price your Magic: The Gathering collection</p>
+            <h1>🃏 MTG Card Cataloging Tool</h1>
+            <p>Fetch prices and catalog your collection | Export ready for Google Sheets</p>
         </div>
         
         <div class="content">
             <div class="info-box">
                 <h3>How to use:</h3>
                 <ul>
-                    <li>Enter card names, one per line</li>
-                    <li><strong>Optional:</strong> Add set code in brackets: <code>Lightning Bolt [LEA]</code></li>
-                    <li>Without set code, it will fetch the most recent printing</li>
+                    <li>Enter card names, one per line (optional: add set code like "Lightning Bolt [LEA]")</li>
                     <li>Click "Fetch Prices" to query Scryfall API</li>
-                    <li>View results, sort by any column</li>
-                    <li>Export to CSV for spreadsheet use</li>
+                    <li>Edit quantity, condition, and other details in the table</li>
+                    <li>Export to CSV - ready to import to Google Sheets!</li>
                 </ul>
             </div>
             
             <div class="input-section">
                 <label for="cardInput">Card Names (one per line):</label>
-                <textarea id="cardInput" placeholder="Built to Smash&#10;Lightning Bolt [LEA]&#10;Sol Ring [CMR]&#10;Path to Exile"></textarea></textarea>
+                <textarea id="cardInput" placeholder="Built to Smash&#10;Lightning Bolt [LEA]&#10;Sol Ring [CMR]&#10;Path to Exile"></textarea>
                 
                 <div class="button-group">
                     <button class="btn-primary" onclick="fetchPrices()">Fetch Prices</button>
@@ -336,20 +355,26 @@
                 </div>
                 
                 <div class="button-group">
-                    <button class="btn-success" onclick="exportToCSV()">Export to CSV</button>
-                    <button class="btn-secondary" onclick="copyToClipboard()">Copy to Clipboard</button>
+                    <button class="btn-success" onclick="exportToCSV()">Export to CSV (Google Sheets Ready)</button>
                 </div>
                 
                 <div class="table-container">
                     <table id="resultsTable">
                         <thead>
                             <tr>
-                                <th onclick="sortTable(0)">Card Name ↕</th>
-                                <th onclick="sortTable(1)">Set ↕</th>
-                                <th onclick="sortTable(2)">Rarity ↕</th>
-                                <th onclick="sortTable(3)">Type ↕</th>
-                                <th onclick="sortTable(4)">Price (USD) ↕</th>
-                                <th onclick="sortTable(5)">Foil Price ↕</th>
+                                <th>Card Name</th>
+                                <th>Set</th>
+                                <th>Code</th>
+                                <th>Rarity</th>
+                                <th>Type</th>
+                                <th>Colors</th>
+                                <th>Price</th>
+                                <th>Foil $</th>
+                                <th>Qty</th>
+                                <th>Foil?</th>
+                                <th>Cond.</th>
+                                <th>Deck</th>
+                                <th>Trade</th>
                             </tr>
                         </thead>
                         <tbody id="resultsBody">
@@ -362,17 +387,15 @@
 
     <script>
         let cardData = [];
-        let sortDirection = {};
 
         function loadSampleData() {
-            const sampleCards = `Built to Smash
-Lightning Bolt [LEA]
+            const sampleCards = `Sol Ring
 Lightning Bolt
-Path to Exile [OTC]
-Sol Ring [CMR]
-Rhystic Study
-Black Lotus [LEA]
-Cultivate`;
+Frodo, Sauron's Bane
+The One Ring
+Cultivate
+Path to Exile
+Rhystic Study`;
             document.getElementById('cardInput').value = sampleCards;
         }
 
@@ -390,12 +413,10 @@ Cultivate`;
                 return;
             }
 
-            // Parse card names and optional set codes
             const cardEntries = input.split('\n').map(line => {
                 line = line.trim();
                 if (!line) return null;
                 
-                // Check for set code in brackets [XXX]
                 const match = line.match(/^(.+?)\s*\[([A-Z0-9]+)\]$/i);
                 if (match) {
                     return {
@@ -431,8 +452,6 @@ Cultivate`;
                 
                 completed++;
                 updateProgress(completed, total);
-                
-                // Rate limiting: 100ms delay between requests
                 await sleep(100);
             }
 
@@ -444,10 +463,8 @@ Cultivate`;
             let url;
             
             if (setCode) {
-                // Query specific set printing
                 url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}&set=${setCode}`;
             } else {
-                // Query most recent printing
                 url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
             }
             
@@ -455,25 +472,37 @@ Cultivate`;
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    throw new Error(setCode ? `Card not found in set ${setCode}` : 'Card not found');
+                    throw new Error(setCode ? `Not found in set ${setCode}` : 'Card not found');
                 }
                 throw new Error(`API error: ${response.status}`);
             }
             
             const data = await response.json();
             
+            // Format rarity with capital first letter
+            const rarity = data.rarity.charAt(0).toUpperCase() + data.rarity.slice(1);
+            
+            // Format colors as comma-separated
+            let colorString = 'Colorless';
+            if (data.colors && data.colors.length > 0) {
+                colorString = data.colors.join(', ');
+            }
+            
             return {
                 name: data.name,
                 set: data.set_name,
                 setCode: data.set.toUpperCase(),
-                rarity: data.rarity,
+                rarity: rarity,
                 type: data.type_line,
-                colors: data.colors || [],
+                colors: colorString,
                 price: parseFloat(data.prices?.usd) || 0,
                 priceFoil: parseFloat(data.prices?.usd_foil) || 0,
-                imageUrl: data.image_uris?.small || '',
-                scryfallUrl: data.scryfall_uri,
-                requestedSet: setCode // Track if user requested specific set
+                quantity: 1,
+                isFoil: 'N',
+                condition: 'NM',
+                deckAssignment: '',
+                forTrade: 'N',
+                requestedSet: setCode
             };
         }
 
@@ -491,29 +520,53 @@ Cultivate`;
             let totalValue = 0;
             let validCards = 0;
 
-            cardData.forEach(card => {
+            cardData.forEach((card, index) => {
                 const row = tbody.insertRow();
                 
                 if (card.error) {
                     row.innerHTML = `
-                        <td>${card.name}${card.setCode ? ` <span style="color: #999;">[${card.setCode}]</span>` : ''}</td>
-                        <td colspan="5" style="color: #dc3545;">❌ ${card.error}</td>
+                        <td><strong>${card.name}</strong></td>
+                        <td colspan="12" style="color: #dc3545;">❌ ${card.error}</td>
                     `;
                 } else {
-                    totalValue += card.price;
                     validCards++;
+                    const cardValue = card.isFoil === 'Y' ? card.priceFoil * card.quantity : card.price * card.quantity;
+                    totalValue += cardValue;
                     
-                    const setDisplay = card.requestedSet 
-                        ? `${card.set} (${card.setCode}) ✓` 
-                        : `${card.set} (${card.setCode})`;
+                    const setDisplay = card.requestedSet ? `${card.set} ✓` : card.set;
                     
                     row.innerHTML = `
                         <td><strong>${card.name}</strong></td>
                         <td>${setDisplay}</td>
-                        <td><span class="rarity rarity-${card.rarity}">${card.rarity}</span></td>
+                        <td>${card.setCode}</td>
+                        <td><span class="rarity rarity-${card.rarity.toLowerCase()}">${card.rarity}</span></td>
                         <td>${card.type}</td>
-                        <td class="price">${card.price.toFixed(2)}</td>
-                        <td class="price">${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}</td>
+                        <td class="color-display">${card.colors}</td>
+                        <td class="price">$${card.price.toFixed(2)}</td>
+                        <td class="price">$${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}</td>
+                        <td class="editable-cell"><input type="number" min="1" value="${card.quantity}" onchange="updateQuantity(${index}, this.value)"></td>
+                        <td class="editable-cell">
+                            <select onchange="updateFoil(${index}, this.value)">
+                                <option value="N" ${card.isFoil === 'N' ? 'selected' : ''}>N</option>
+                                <option value="Y" ${card.isFoil === 'Y' ? 'selected' : ''}>Y</option>
+                            </select>
+                        </td>
+                        <td class="editable-cell">
+                            <select onchange="updateCondition(${index}, this.value)">
+                                <option value="NM" ${card.condition === 'NM' ? 'selected' : ''}>NM</option>
+                                <option value="LP" ${card.condition === 'LP' ? 'selected' : ''}>LP</option>
+                                <option value="MP" ${card.condition === 'MP' ? 'selected' : ''}>MP</option>
+                                <option value="HP" ${card.condition === 'HP' ? 'selected' : ''}>HP</option>
+                                <option value="DMG" ${card.condition === 'DMG' ? 'selected' : ''}>DMG</option>
+                            </select>
+                        </td>
+                        <td class="editable-cell"><input type="text" value="${card.deckAssignment}" onchange="updateDeck(${index}, this.value)" placeholder="Deck name"></td>
+                        <td class="editable-cell">
+                            <select onchange="updateTrade(${index}, this.value)">
+                                <option value="N" ${card.forTrade === 'N' ? 'selected' : ''}>N</option>
+                                <option value="Y" ${card.forTrade === 'Y' ? 'selected' : ''}>Y</option>
+                            </select>
+                        </td>
                     `;
                 }
             });
@@ -525,44 +578,52 @@ Cultivate`;
             document.getElementById('resultsSection').style.display = 'block';
         }
 
-        function sortTable(columnIndex) {
-            const table = document.getElementById('resultsTable');
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            
-            const direction = sortDirection[columnIndex] || 'asc';
-            const newDirection = direction === 'asc' ? 'desc' : 'asc';
-            sortDirection = { [columnIndex]: newDirection };
-            
-            rows.sort((a, b) => {
-                let aVal = a.cells[columnIndex]?.textContent || '';
-                let bVal = b.cells[columnIndex]?.textContent || '';
-                
-                // Handle price columns
-                if (columnIndex === 4 || columnIndex === 5) {
-                    aVal = parseFloat(aVal.replace(/[$,]/g, '')) || 0;
-                    bVal = parseFloat(bVal.replace(/[$,]/g, '')) || 0;
-                    return newDirection === 'asc' ? aVal - bVal : bVal - aVal;
-                }
-                
-                // Handle text columns
-                if (newDirection === 'asc') {
-                    return aVal.localeCompare(bVal);
-                } else {
-                    return bVal.localeCompare(aVal);
+        function updateQuantity(index, value) {
+            cardData[index].quantity = parseInt(value) || 1;
+            updateStats();
+        }
+
+        function updateFoil(index, value) {
+            cardData[index].isFoil = value;
+            updateStats();
+        }
+
+        function updateCondition(index, value) {
+            cardData[index].condition = value;
+        }
+
+        function updateDeck(index, value) {
+            cardData[index].deckAssignment = value;
+        }
+
+        function updateTrade(index, value) {
+            cardData[index].forTrade = value;
+        }
+
+        function updateStats() {
+            let totalValue = 0;
+            let validCards = 0;
+
+            cardData.forEach(card => {
+                if (!card.error) {
+                    validCards++;
+                    const cardValue = card.isFoil === 'Y' ? card.priceFoil * card.quantity : card.price * card.quantity;
+                    totalValue += cardValue;
                 }
             });
-            
-            tbody.innerHTML = '';
-            rows.forEach(row => tbody.appendChild(row));
+
+            document.getElementById('totalCards').textContent = validCards;
+            document.getElementById('totalValue').textContent = '$' + totalValue.toFixed(2);
+            document.getElementById('avgPrice').textContent = validCards > 0 ? '$' + (totalValue / validCards).toFixed(2) : '$0.00';
         }
 
         function exportToCSV() {
-            let csv = 'Card Name,Set,Set Code,Rarity,Type,Price (USD),Foil Price (USD)\n';
+            // Header row matching Google Sheets template exactly
+            let csv = 'Card Name,Set,Set Code,Rarity,Type,Colors,Price (USD),Foil Price (USD),Quantity,Is Foil?,Condition,Deck Assignment,For Trade\n';
             
             cardData.forEach(card => {
                 if (!card.error) {
-                    csv += `"${card.name}","${card.set}","${card.setCode}","${card.rarity}","${card.type}",${card.price},${card.priceFoil}\n`;
+                    csv += `"${card.name}","${card.set}","${card.setCode}","${card.rarity}","${card.type}","${card.colors}",${card.price},${card.priceFoil},${card.quantity},${card.isFoil},${card.condition},"${card.deckAssignment}",${card.forTrade}\n`;
                 }
             });
             
@@ -573,20 +634,6 @@ Cultivate`;
             a.download = 'mtg-collection-' + new Date().toISOString().split('T')[0] + '.csv';
             a.click();
             window.URL.revokeObjectURL(url);
-        }
-
-        function copyToClipboard() {
-            let text = 'Card Name\tSet\tRarity\tType\tPrice (USD)\tFoil Price (USD)\n';
-            
-            cardData.forEach(card => {
-                if (!card.error) {
-                    text += `${card.name}\t${card.set}\t${card.rarity}\t${card.type}\t$${card.price.toFixed(2)}\t$${card.priceFoil > 0 ? card.priceFoil.toFixed(2) : 'N/A'}\n`;
-                }
-            });
-            
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Data copied to clipboard! You can paste it into Excel or Google Sheets.');
-            });
         }
 
         function showError(message) {
