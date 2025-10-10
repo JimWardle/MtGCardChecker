@@ -356,6 +356,10 @@
                 
                 <div class="button-group">
                     <button class="btn-success" onclick="exportToCSV()">Export to CSV (Google Sheets Ready)</button>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                        <input type="checkbox" id="includeHeaders" checked>
+                        <span>Include column headers in export</span>
+                    </label>
                 </div>
                 
                 <div class="table-container">
@@ -618,8 +622,13 @@ Rhystic Study`;
         }
 
         function exportToCSV() {
+            const includeHeaders = document.getElementById('includeHeaders').checked;
+            let csv = '';
+            
             // Header row matching Google Sheets template exactly
-            let csv = 'Card Name,Set,Set Code,Rarity,Type,Colors,Price (USD),Foil Price (USD),Quantity,Is Foil?,Condition,Deck Assignment,For Trade\n';
+            if (includeHeaders) {
+                csv = 'Card Name,Set,Set Code,Rarity,Type,Colors,Price (USD),Foil Price (USD),Quantity,Is Foil?,Condition,Deck Assignment,For Trade\n';
+            }
             
             cardData.forEach(card => {
                 if (!card.error) {
